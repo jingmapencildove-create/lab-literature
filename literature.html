@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>抗体研究文献资讯库</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0e1117;--bg2:#161b24;--bg3:#1c222e;--bg4:#242b38;
+  --border:rgba(55,65,80,0.9);--border2:rgba(55,65,80,0.4);
+  --text:#dde3ee;--text2:#8a94a6;--text3:#556070;
+  --accent:#4f8ef7;--accent2:#1a4fa8;
+  --green:#34d399;--green-bg:rgba(52,211,153,0.1);
+  --amber:#fbbf24;--amber-bg:rgba(251,191,36,0.1);
+  --red:#f87171;--red-bg:rgba(248,113,113,0.1);
+  --purple:#c084fc;--purple-bg:rgba(192,132,252,0.1);
+  --mono:'IBM Plex Mono',monospace;--sans:'Noto Sans SC',sans-serif;
+  --r:6px;--rl:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100%;font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;}
+
+/* Layout */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:54px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:50;}
+.topbar-logo{font-size:20px;}
+.topbar-title{font-size:15px;font-weight:600;}
+.topbar-sub{font-size:12px;color:var(--text3);}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.last-update{font-size:11px;color:var(--text3);font-family:var(--mono);background:var(--bg3);padding:3px 10px;border-radius:99px;border:1px solid var(--border);}
+
+.container{max-width:1200px;margin:0 auto;padding:28px 24px;}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin-bottom:24px;}
+.tab{padding:10px 18px;font-size:13px;cursor:pointer;border:none;background:none;color:var(--text2);border-bottom:2px solid transparent;transition:all .15s;display:flex;align-items:center;gap:7px;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500;}
+.tab-count{background:var(--bg3);border:1px solid var(--border);border-radius:99px;font-size:10px;padding:1px 6px;font-family:var(--mono);}
+
+/* Filter bar */
+.filter-bar{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
+.search-wrap{position:relative;flex:1;min-width:200px;max-width:360px;}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--text3);}
+.search-wrap input{width:100%;padding:8px 10px 8px 32px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:13px;outline:none;transition:border-color .12s;}
+.search-wrap input:focus{border-color:var(--accent);}
+.search-wrap input::placeholder{color:var(--text3);}
+select.flt{padding:8px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:13px;cursor:pointer;outline:none;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--r);font-size:13px;font-family:var(--sans);cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--text);transition:all .12s;white-space:nowrap;}
+.btn svg{width:14px;height:14px;}
+.btn:hover{background:var(--bg3);}
+.btn.primary{background:var(--accent2);border-color:var(--accent);color:#fff;}
+.btn.primary:hover{background:var(--accent);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* Loading */
+.loading{text-align:center;padding:60px 20px;}
+.spinner{width:36px;height:36px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;color:var(--text2);}
+
+/* Article card */
+.articles{display:flex;flex-direction:column;gap:12px;}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:18px 20px;transition:border-color .15s;}
+.card:hover{border-color:var(--accent2);}
+.card-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px;}
+.card-badges{display:flex;gap:6px;flex-wrap:wrap;flex-shrink:0;}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:500;font-family:var(--mono);white-space:nowrap;}
+.badge.new{background:var(--green-bg);color:var(--green);border:1px solid rgba(52,211,153,.25);}
+.badge.hot{background:var(--red-bg);color:var(--red);border:1px solid rgba(248,113,113,.25);}
+.badge.method{background:var(--purple-bg);color:var(--purple);border:1px solid rgba(192,132,252,.25);}
+.badge.clinical{background:var(--amber-bg);color:var(--amber);border:1px solid rgba(251,191,36,.25);}
+.badge.nano{background:rgba(56,189,248,.1);color:#38bdf8;border:1px solid rgba(56,189,248,.25);}
+.badge.adc{background:rgba(251,146,60,.1);color:#fb923c;border:1px solid rgba(251,146,60,.25);}
+.badge.bispecific{background:rgba(168,85,247,.1);color:#a855f7;border:1px solid rgba(168,85,247,.25);}
+.badge.immune{background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.25);}
+.card-title{font-size:14px;font-weight:500;line-height:1.5;flex:1;}
+.card-title a{color:var(--text);text-decoration:none;}
+.card-title a:hover{color:var(--accent);}
+.card-meta{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--text3);margin-bottom:10px;align-items:center;}
+.card-meta svg{width:12px;height:12px;flex-shrink:0;}
+.card-meta span{display:flex;align-items:center;gap:4px;}
+.journal-name{color:var(--accent);font-weight:500;}
+.card-abstract{font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:12px;}
+.abstract-toggle{color:var(--accent);cursor:pointer;font-size:12px;background:none;border:none;padding:0;}
+.abstract-toggle:hover{text-decoration:underline;}
+.card-keywords{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.keyword{background:var(--bg3);border:1px solid var(--border2);border-radius:4px;padding:2px 8px;font-size:11px;color:var(--text3);}
+.card-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+.card-links{display:flex;gap:8px;}
+.link-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:var(--r);font-size:12px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;text-decoration:none;transition:all .12s;}
+.link-btn:hover{background:var(--bg3);color:var(--text);}
+.link-btn.pubmed{border-color:rgba(79,142,247,.3);color:var(--accent);}
+.link-btn.pubmed:hover{background:var(--blue-bg);}
+.blue-bg{background:rgba(79,142,247,0.1);}
+.badge.protac{background:rgba(20,184,166,0.1);color:#14b8a6;border:1px solid rgba(20,184,166,0.25);}
+.badge.lytac{background:rgba(244,114,182,0.1);color:#f472b6;border:1px solid rgba(244,114,182,0.25);}
+.badge.abprotac{background:rgba(251,113,133,0.1);color:#fb7185;border:1px solid rgba(251,113,133,0.25);}
+.badge.molglu{background:rgba(99,102,241,0.1);color:#6366f1;border:1px solid rgba(99,102,241,0.25);}
+
+/* Stats bar */
+.stats-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px;}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;}
+.stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.stat-val{font-size:22px;font-weight:300;font-family:var(--mono);}
+.cg{color:var(--green);}.ca{color:var(--amber);}.cb{color:var(--accent);}.cp{color:var(--purple);}
+
+/* Topic chips */
+.topic-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+.chip{padding:6px 14px;border-radius:99px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);transition:all .12s;font-family:var(--sans);}
+.chip:hover{border-color:var(--text3);color:var(--text);}
+.chip.active{background:var(--accent2);border-color:var(--accent);color:#fff;}
+
+/* Empty */
+.empty{text-align:center;padding:60px;color:var(--text3);font-size:13px;}
+.empty svg{width:40px;height:40px;margin:0 auto 12px;display:block;opacity:.3;}
+
+/* Pagination */
+.pagination{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:24px;}
+.page-info{font-size:12px;color:var(--text3);font-family:var(--mono);}
+
+/* Error */
+.error-box{background:var(--red-bg);border:1px solid rgba(248,113,113,.25);border-radius:var(--r);padding:14px 16px;font-size:13px;color:var(--red);margin-bottom:16px;}
+
+/* Tooltip */
+.if-badge{display:inline-flex;align-items:center;gap:3px;padding:2px 6px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:4px;font-size:10px;color:var(--amber);font-family:var(--mono);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-logo">🔬</span>
+  <div>
+    <div class="topbar-title">抗体研究文献资讯库</div>
+    <div class="topbar-sub">实时抓取 PubMed · 纳米抗体 · 单克隆抗体 · ADC · 双抗 · 肿瘤免疫 · PROTAC · LYTAC · 抗体-PROTAC</div>
+  </div>
+  <div class="topbar-right">
+    <span class="last-update" id="last-update">—</span>
+    <button class="btn primary" onclick="refreshAll()" id="refresh-btn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      刷新文献
+    </button>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Stats -->
+  <div class="stats-bar" id="stats-bar">
+    <div class="stat-card"><div class="stat-label">已抓取文献</div><div class="stat-val cb" id="stat-total">—</div></div>
+    <div class="stat-card"><div class="stat-label">近3个月新文献</div><div class="stat-val cg" id="stat-new">—</div></div>
+    <div class="stat-card"><div class="stat-label">涉及期刊数</div><div class="stat-val ca" id="stat-journals">—</div></div>
+    <div class="stat-card"><div class="stat-label">覆盖研究方向</div><div class="stat-val cp" id="stat-topics">9</div></div>
+  </div>
+
+  <!-- Topic chips -->
+  <div class="topic-chips" id="topic-chips">
+    <button class="chip active" data-topic="all" onclick="filterTopic(this)">全部</button>
+    <button class="chip" data-topic="nanobody" onclick="filterTopic(this)">🧫 纳米抗体</button>
+    <button class="chip" data-topic="monoclonal" onclick="filterTopic(this)">🔬 单克隆抗体</button>
+    <button class="chip" data-topic="adc" onclick="filterTopic(this)">💊 ADC</button>
+    <button class="chip" data-topic="bispecific" onclick="filterTopic(this)">🔗 双抗</button>
+    <button class="chip" data-topic="immunotherapy" onclick="filterTopic(this)">🛡️ 肿瘤免疫</button>
+    <button class="chip" data-topic="protac" onclick="filterTopic(this)">🔧 PROTAC</button>
+    <button class="chip" data-topic="lytac" onclick="filterTopic(this)">🧫 LYTAC</button>
+    <button class="chip" data-topic="abprotac" onclick="filterTopic(this)">💉 抗体-PROTAC</button>
+    <button class="chip" data-topic="molglu" onclick="filterTopic(this)">🧪 Molecular Glue</button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('latest',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      最新文献 <span class="tab-count" id="count-latest">0</span>
+    </button>
+    <button class="tab" onclick="switchTab('classic',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      高影响力 <span class="tab-count" id="count-classic">0</span>
+    </button>
+    <button class="tab" onclick="switchTab('method',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      技术方法 <span class="tab-count" id="count-method">0</span>
+    </button>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="filter-bar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="search-input" placeholder="搜索标题、作者、关键词…" oninput="applyFilters()">
+    </div>
+    <select class="flt" id="year-filter" onchange="applyFilters()">
+      <option value="">全部年份</option>
+      <option value="2026">2026年</option>
+      <option value="2025">2025年</option>
+      <option value="2024">2024年</option>
+      <option value="2023">2023年</option>
+    </select>
+    <select class="flt" id="sort-filter" onchange="applyFilters()">
+      <option value="date">按日期排序</option>
+      <option value="journal">按期刊排序</option>
+      <option value="relevance">按相关性</option>
+    </select>
+  </div>
+
+  <!-- Error -->
+  <div class="error-box" id="error-box" style="display:none"></div>
+
+  <!-- Article list -->
+  <div id="article-container">
+    <div class="loading" id="loading-box">
+      <div class="spinner"></div>
+      <div class="loading-text" id="loading-text">正在从 PubMed 抓取最新文献…</div>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination" id="pagination" style="display:none">
+    <button class="btn" id="prev-btn" onclick="changePage(-1)">← 上一页</button>
+    <span class="page-info" id="page-info">第 1 页</span>
+    <button class="btn" id="next-btn" onclick="changePage(1)">下一页 →</button>
+  </div>
+
+</div>
+
+<script>
+// ── PubMed E-utilities API (免费，无需注册) ──
+const PUBMED_BASE = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
+const PAGE_SIZE = 10;
+
+// 研究方向搜索词配置
+const TOPICS = {
+  nanobody:     { label:'纳米抗体', query:'nanobody OR "single domain antibody" OR "VHH antibody"', badge:'nano' },
+  monoclonal:   { label:'单克隆抗体', query:'monoclonal antibody AND (cancer OR tumor OR therapeutic)', badge:'method' },
+  adc:          { label:'ADC', query:'"antibody drug conjugate" OR "ADC" AND (cancer OR tumor)', badge:'adc' },
+  bispecific:   { label:'双抗', query:'"bispecific antibody" OR "bsAb" OR "bispecific"', badge:'bispecific' },
+  immunotherapy:{ label:'肿瘤免疫', query:'"tumor immunotherapy" OR "checkpoint inhibitor" OR "PD-1" OR "PD-L1" OR "CAR-T"', badge:'immune' },
+  protac:       { label:'PROTAC', query:'"PROTAC" OR "proteolysis targeting chimera" OR "targeted protein degradation" AND ubiquitin', badge:'protac' },
+  lytac:        { label:'LYTAC', query:'"LYTAC" OR "lysosome targeting chimera" OR "extracellular protein degradation" OR "M6Pn" OR "lysosomal degradation antibody"', badge:'lytac' },
+  abprotac:     { label:'抗体-PROTAC', query:'"antibody PROTAC" OR "AbTAC" OR "bispecific degrader" OR "antibody conjugated PROTAC" OR "immunoPROTAC"', badge:'abprotac' },
+  molglu:       { label:'Molecular Glue', query:'"molecular glue" OR "molecular glue degrader" OR "cereblon" AND degrader', badge:'molglu' },
+};
+
+// 高影响力期刊列表
+const HIGH_IF_JOURNALS = ['Nature','Science','Cell','Nature Medicine','Nature Biotechnology',
+  'Nature Communications','NEJM','Lancet','JAMA','Cancer Cell','Immunity','Journal of Clinical Oncology',
+  'Clinical Cancer Research','mAbs','Antibodies','Protein Engineering'];
+
+let allArticles = [];
+let filteredArticles = [];
+let currentTab = 'latest';
+let currentTopic = 'all';
+let currentPage = 1;
+let isLoading = false;
+
+// ── 抓取文章 ──
+async function fetchPubMed(query, maxResults=50, sort='pub+date') {
+  // Step 1: esearch - 获取 PMID 列表
+  const searchUrl = `${PUBMED_BASE}/esearch.fcgi?db=pubmed&term=${encodeURIComponent(query)}&retmax=${maxResults}&sort=${sort}&retmode=json`;
+  const searchRes = await fetch(searchUrl);
+  const searchData = await searchRes.json();
+  const ids = searchData.esearchresult?.idlist || [];
+  if (!ids.length) return [];
+
+  // Step 2: efetch - 获取文章详情
+  const fetchUrl = `${PUBMED_BASE}/efetch.fcgi?db=pubmed&id=${ids.join(',')}&retmode=xml`;
+  const fetchRes = await fetch(fetchUrl);
+  const xmlText = await fetchRes.text();
+  return parseXML(xmlText);
+}
+
+// ── 解析 PubMed XML ──
+function parseXML(xml) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xml, 'text/xml');
+  const articles = [];
+
+  doc.querySelectorAll('PubmedArticle').forEach(art => {
+    try {
+      // 标题
+      const title = art.querySelector('ArticleTitle')?.textContent?.trim() || '无标题';
+
+      // 摘要
+      const abstractParts = art.querySelectorAll('AbstractText');
+      let abstract = '';
+      abstractParts.forEach(p => {
+        const label = p.getAttribute('Label');
+        abstract += (label ? label + ': ' : '') + p.textContent + ' ';
+      });
+      abstract = abstract.trim();
+
+      // 作者
+      const authors = [];
+      art.querySelectorAll('Author').forEach(a => {
+        const last = a.querySelector('LastName')?.textContent || '';
+        const fore = a.querySelector('ForeName')?.textContent || '';
+        if(last) authors.push(fore ? fore[0]+'. '+last : last);
+      });
+
+      // 期刊
+      const journal = art.querySelector('Journal > Title')?.textContent ||
+                      art.querySelector('ISOAbbreviation')?.textContent || '未知期刊';
+
+      // 日期
+      const year  = art.querySelector('PubDate > Year')?.textContent  || '—';
+      const month = art.querySelector('PubDate > Month')?.textContent || '';
+      const date  = month ? `${year} ${month}` : year;
+
+      // PMID
+      const pmid = art.querySelector('PMID')?.textContent || '';
+
+      // DOI
+      const doiEl = [...art.querySelectorAll('ArticleId')].find(el => el.getAttribute('IdType') === 'doi');
+      const doi = doiEl?.textContent || '';
+
+      // 关键词
+      const keywords = [];
+      art.querySelectorAll('Keyword').forEach(k => { if(k.textContent) keywords.push(k.textContent.trim()); });
+
+      // 是否高影响力期刊
+      const isHighIF = HIGH_IF_JOURNALS.some(j => journal.toLowerCase().includes(j.toLowerCase()));
+
+      // 是否近3个月
+      const isNew = isRecentDate(year, month);
+
+      // 标签判断
+      const topicBadges = detectTopics(title + ' ' + abstract);
+
+      if (pmid) {
+        articles.push({ title, abstract, authors, journal, date, year, pmid, doi, keywords, isHighIF, isNew, topicBadges });
+      }
+    } catch(e) {}
+  });
+
+  return articles;
+}
+
+function isRecentDate(year, month) {
+  const months = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+  const now = new Date();
+  const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth()-3, 1);
+  const artDate = new Date(parseInt(year), (months[month]||1)-1, 1);
+  return artDate >= threeMonthsAgo;
+}
+
+function detectTopics(text) {
+  const t = text.toLowerCase();
+  const badges = [];
+  if(t.includes('nanobody') || t.includes('single domain') || t.includes('vhh')) badges.push('nano');
+  if(t.includes('antibody drug conjugate') || t.includes(' adc ') || t.includes('payload')) badges.push('adc');
+  if(t.includes('bispecific') || t.includes('bsab')) badges.push('bispecific');
+  if(t.includes('immunotherapy') || t.includes('pd-1') || t.includes('pd-l1') || t.includes('car-t') || t.includes('checkpoint')) badges.push('immune');
+  if(t.includes('method') || t.includes('protocol') || t.includes('technique') || t.includes('platform') || t.includes('engineering')) badges.push('method');
+  if(t.includes('protac') || t.includes('proteolysis targeting') || t.includes('targeted protein degradation')) badges.push('protac');
+  if(t.includes('lytac') || t.includes('lysosome targeting chimera') || t.includes('lysosomal degradation') || t.includes('extracellular protein degradation')) badges.push('lytac');
+  if(t.includes('abprotac') || t.includes('abtac') || t.includes('antibody protac') || t.includes('immunoprotac') || t.includes('antibody conjugated protac') || t.includes('antibody degrader')) badges.push('abprotac');
+  if(t.includes('molecular glue') || t.includes('cereblon') && t.includes('degrader')) badges.push('molglu');
+  return badges;
+}
+
+// ── 主抓取逻辑 ──
+async function refreshAll() {
+  if(isLoading) return;
+  isLoading = true;
+  allArticles = [];
+  document.getElementById('refresh-btn').disabled = true;
+  document.getElementById('error-box').style.display = 'none';
+  showLoading('正在从 PubMed 抓取最新文献…');
+
+  try {
+    const queries = currentTopic === 'all'
+      ? Object.values(TOPICS).map(t => t.query)
+      : [TOPICS[currentTopic]?.query || ''];
+
+    let idx = 0;
+    for(const q of queries) {
+      idx++;
+      document.getElementById('loading-text').textContent = `正在抓取第 ${idx}/${queries.length} 个研究方向…`;
+      try {
+        const arts = await fetchPubMed(q, 30, 'pub+date');
+        allArticles.push(...arts);
+      } catch(e) {
+        console.warn('抓取失败:', q, e);
+      }
+    }
+
+    // 去重（按 PMID）
+    const seen = new Set();
+    allArticles = allArticles.filter(a => {
+      if(seen.has(a.pmid)) return false;
+      seen.add(a.pmid); return true;
+    });
+
+    // 按日期排序
+    allArticles.sort((a,b) => b.year.localeCompare(a.year));
+
+    updateStats();
+    applyFilters();
+    document.getElementById('last-update').textContent = '更新于 ' + new Date().toLocaleTimeString('zh-CN');
+
+  } catch(e) {
+    showError('抓取失败：' + e.message + '。请检查网络连接后重试。');
+  } finally {
+    isLoading = false;
+    document.getElementById('refresh-btn').disabled = false;
+  }
+}
+
+// ── 过滤 & 渲染 ──
+function applyFilters() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const year = document.getElementById('year-filter').value;
+  const sort = document.getElementById('sort-filter').value;
+
+  let pool = [...allArticles];
+
+  // 话题过滤
+  if(currentTopic !== 'all') {
+    const badgeKey = TOPICS[currentTopic]?.badge;
+    pool = pool.filter(a =>
+      a.topicBadges.includes(badgeKey) ||
+      (a.title+' '+(a.abstract||'')).toLowerCase().includes(
+        TOPICS[currentTopic]?.query.split(' OR ')[0].replace(/['"]/g,'').toLowerCase()
+      )
+    );
+  }
+
+  // Tab 过滤
+  if(currentTab === 'classic') pool = pool.filter(a => a.isHighIF);
+  if(currentTab === 'method')  pool = pool.filter(a => a.topicBadges.includes('method'));
+
+  // 搜索
+  if(q) pool = pool.filter(a =>
+    a.title.toLowerCase().includes(q) ||
+    (a.abstract||'').toLowerCase().includes(q) ||
+    a.authors.join(' ').toLowerCase().includes(q) ||
+    a.journal.toLowerCase().includes(q) ||
+    a.keywords.join(' ').toLowerCase().includes(q)
+  );
+
+  // 年份
+  if(year) pool = pool.filter(a => a.year === year);
+
+  // 排序
+  if(sort === 'journal') pool.sort((a,b) => a.journal.localeCompare(b.journal));
+  else if(sort === 'relevance') pool.sort((a,b) => (b.isHighIF?1:0)-(a.isHighIF?1:0));
+  else pool.sort((a,b) => b.year.localeCompare(a.year));
+
+  filteredArticles = pool;
+  currentPage = 1;
+  updateTabCounts();
+  renderPage();
+}
+
+function updateTabCounts() {
+  const pool = allArticles.filter(a => currentTopic==='all' || matchTopic(a,currentTopic));
+  document.getElementById('count-latest').textContent = pool.filter(a=>a.isNew).length;
+  document.getElementById('count-classic').textContent = pool.filter(a=>a.isHighIF).length;
+  document.getElementById('count-method').textContent = pool.filter(a=>a.topicBadges.includes('method')).length;
+}
+
+function matchTopic(a, topic) {
+  const badgeKey = TOPICS[topic]?.badge;
+  return a.topicBadges.includes(badgeKey);
+}
+
+function renderPage() {
+  const container = document.getElementById('article-container');
+  const start = (currentPage-1) * PAGE_SIZE;
+  const page = filteredArticles.slice(start, start+PAGE_SIZE);
+  const total = filteredArticles.length;
+  const totalPages = Math.ceil(total/PAGE_SIZE);
+
+  if(!total) {
+    container.innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      暂无匹配文献
+    </div>`;
+    document.getElementById('pagination').style.display='none';
+    return;
+  }
+
+  container.innerHTML = `<div class="articles">${page.map(renderCard).join('')}</div>`;
+
+  // Pagination
+  const pg = document.getElementById('pagination');
+  pg.style.display = totalPages>1 ? 'flex' : 'none';
+  document.getElementById('page-info').textContent = `第 ${currentPage} / ${totalPages} 页  共 ${total} 篇`;
+  document.getElementById('prev-btn').disabled = currentPage===1;
+  document.getElementById('next-btn').disabled = currentPage===totalPages;
+}
+
+function renderCard(a) {
+  const abstractShort = a.abstract ? (a.abstract.length>200 ? a.abstract.slice(0,200)+'…' : a.abstract) : '';
+  const abstractFull  = a.abstract || '';
+  const hasMore = a.abstract && a.abstract.length > 200;
+
+  const badgeHTML = [
+    a.isNew      ? '<span class="badge new">🆕 近期</span>' : '',
+    a.isHighIF   ? '<span class="badge hot">⭐ 高影响力</span>' : '',
+    ...a.topicBadges.map(b => {
+      const map = {
+        nano:'<span class="badge nano">纳米抗体</span>',
+        adc:'<span class="badge adc">ADC</span>',
+        bispecific:'<span class="badge bispecific">双抗</span>',
+        immune:'<span class="badge immune">肿瘤免疫</span>',
+        method:'<span class="badge method">方法学</span>',
+        protac:'<span class="badge protac">PROTAC</span>',
+        lytac:'<span class="badge lytac">LYTAC</span>',
+        abprotac:'<span class="badge abprotac">抗体-PROTAC</span>',
+        molglu:'<span class="badge molglu">Molecular Glue</span>',
+      };
+      return map[b]||'';
+    })
+  ].filter(Boolean).join('');
+
+  const authorStr = a.authors.length > 3
+    ? a.authors.slice(0,3).join(', ') + ' 等'
+    : a.authors.join(', ');
+
+  const isHighJournal = HIGH_IF_JOURNALS.some(j => a.journal.toLowerCase().includes(j.toLowerCase()));
+
+  const id = 'abs_' + a.pmid;
+
+  return `<div class="card">
+    <div class="card-header">
+      <div class="card-title">
+        <a href="https://pubmed.ncbi.nlm.nih.gov/${a.pmid}/" target="_blank">${a.title}</a>
+      </div>
+      <div class="card-badges">${badgeHTML}</div>
+    </div>
+    <div class="card-meta">
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span class="${isHighJournal?'journal-name':''}">${a.journal}</span>
+      </span>
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>${a.date}</span>
+      ${authorStr ? `<span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>${authorStr}</span>` : ''}
+      <span style="font-family:var(--mono);font-size:11px;color:var(--text3)">PMID: ${a.pmid}</span>
+    </div>
+    ${abstractShort ? `<div class="card-abstract" id="${id}-short">${abstractShort}${hasMore?` <button class="abstract-toggle" onclick="toggleAbstract('${a.pmid}')">展开全文摘要</button>`:''}</div>
+    ${hasMore?`<div class="card-abstract" id="${id}-full" style="display:none">${abstractFull} <button class="abstract-toggle" onclick="toggleAbstract('${a.pmid}')">收起</button></div>`:''}` : ''}
+    ${a.keywords.length ? `<div class="card-keywords">${a.keywords.slice(0,6).map(k=>`<span class="keyword">${k}</span>`).join('')}</div>` : ''}
+    <div class="card-footer">
+      <div class="card-links">
+        <a class="link-btn pubmed" href="https://pubmed.ncbi.nlm.nih.gov/${a.pmid}/" target="_blank">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          PubMed
+        </a>
+        ${a.doi ? `<a class="link-btn" href="https://doi.org/${a.doi}" target="_blank">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          全文 DOI
+        </a>` : ''}
+      </div>
+      ${isHighJournal ? `<span class="if-badge">⭐ ${a.journal}</span>` : ''}
+    </div>
+  </div>`;
+}
+
+function toggleAbstract(pmid) {
+  const s = document.getElementById('abs_'+pmid+'-short');
+  const f = document.getElementById('abs_'+pmid+'-full');
+  if(s && f) {
+    const isShort = s.style.display !== 'none';
+    s.style.display = isShort ? 'none' : '';
+    f.style.display = isShort ? '' : 'none';
+  }
+}
+
+function updateStats() {
+  const journals = new Set(allArticles.map(a=>a.journal));
+  document.getElementById('stat-total').textContent   = allArticles.length;
+  document.getElementById('stat-new').textContent     = allArticles.filter(a=>a.isNew).length;
+  document.getElementById('stat-journals').textContent= journals.size;
+}
+
+function switchTab(tab, el) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  currentPage = 1;
+  applyFilters();
+}
+
+function filterTopic(el) {
+  currentTopic = el.dataset.topic;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  currentPage = 1;
+  applyFilters();
+}
+
+function changePage(dir) {
+  currentPage += dir;
+  renderPage();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function showLoading(msg) {
+  document.getElementById('article-container').innerHTML = `<div class="loading"><div class="spinner"></div><div class="loading-text" id="loading-text">${msg}</div></div>`;
+  document.getElementById('pagination').style.display='none';
+}
+
+function showError(msg) {
+  const box = document.getElementById('error-box');
+  box.textContent = msg;
+  box.style.display = 'block';
+  document.getElementById('article-container').innerHTML = '<div class="empty">抓取失败，请点击「刷新文献」重试</div>';
+}
+
+// 初始化
+refreshAll();
+</script>
+</body>
+</html>
