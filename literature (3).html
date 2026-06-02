@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ResearchPulse · 科研动态</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════
+   DESIGN SYSTEM — Deep Ocean × Platinum
+══════════════════════════════════ */
+:root {
+  /* Backgrounds — layered depth */
+  --c-void:    #020508;
+  --c-deep:    #050d18;
+  --c-ocean:   #081422;
+  --c-navy:    #0c1d30;
+  --c-slate:   #112438;
+  --c-panel:   #142a42;
+
+  /* Borders */
+  --b-dim:  rgba(30,90,160,0.18);
+  --b-soft: rgba(40,120,200,0.28);
+  --b-med:  rgba(60,140,220,0.40);
+  --b-glow: rgba(80,160,255,0.55);
+
+  /* Text */
+  --t-white:   #f0f6ff;
+  --t-bright:  #c8ddf5;
+  --t-mid:     #7a9dc0;
+  --t-dim:     #3d6080;
+  --t-ghost:   #1e3d5a;
+
+  /* Accent palette */
+  --gold:      #e8c46a;
+  --gold-dim:  rgba(232,196,106,0.12);
+  --gold-glow: rgba(232,196,106,0.30);
+  --cyan:      #4dd9ff;
+  --cyan-dim:  rgba(77,217,255,0.10);
+  --green:     #3ecf8e;
+  --green-dim: rgba(62,207,142,0.10);
+  --red:       #f06b6b;
+  --red-dim:   rgba(240,107,107,0.10);
+  --violet:    #b07ef3;
+  --violet-dim:rgba(176,126,243,0.10);
+  --amber:     #f5a623;
+  --amber-dim: rgba(245,166,35,0.10);
+
+  /* Typography */
+  --mono: 'IBM Plex Mono', monospace;
+  --sans: 'Noto Sans SC', sans-serif;
+
+  /* Layout */
+  --r:  6px;
+  --rl: 12px;
+  --rxl:18px;
+}
+
+/* ── Reset & Base ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--sans);
+  background: var(--c-void);
+  color: var(--t-bright);
+  font-size: 14px;
+  line-height: 1.6;
+  min-height: 100vh;
+  /* Subtle grid texture */
+  background-image:
+    linear-gradient(rgba(4,20,40,0.8) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(4,20,40,0.8) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: center center;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--c-deep); }
+::-webkit-scrollbar-thumb { background: var(--b-soft); border-radius: 99px; }
+
+/* ══════════════════════════════════
+   LOADING SCREEN
+══════════════════════════════════ */
+.loader {
+  position: fixed; inset: 0; background: var(--c-void); z-index: 999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0;
+}
+.loader.out { animation: loaderOut .5s ease forwards; }
+@keyframes loaderOut { to { opacity: 0; pointer-events: none; } }
+
+.loader-orb {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, var(--cyan), var(--c-navy));
+  box-shadow: 0 0 40px rgba(77,217,255,.35), 0 0 80px rgba(77,217,255,.12);
+  display: flex; align-items: center; justify-content: center; font-size: 32px;
+  animation: orbPulse 3s ease-in-out infinite;
+  margin-bottom: 28px;
+}
+@keyframes orbPulse {
+  0%,100% { box-shadow: 0 0 40px rgba(77,217,255,.35), 0 0 80px rgba(77,217,255,.12); transform: scale(1); }
+  50%      { box-shadow: 0 0 60px rgba(77,217,255,.55), 0 0 120px rgba(77,217,255,.20); transform: scale(1.04); }
+}
+.loader-title { font-size: 22px; font-weight: 600; letter-spacing: .04em; color: var(--t-white); margin-bottom: 6px; }
+.loader-sub { font-size: 12px; color: var(--t-dim); font-family: var(--mono); margin-bottom: 28px; letter-spacing: .06em; }
+.loader-msg { font-size: 13px; color: var(--t-mid); min-height: 22px; text-align: center; margin-bottom: 14px; transition: all .3s; }
+.loader-track { width: 320px; height: 2px; background: var(--c-slate); border-radius: 99px; overflow: hidden; margin-bottom: 20px; }
+.loader-fill { height: 100%; background: linear-gradient(90deg, var(--cyan), var(--gold)); border-radius: 99px; transition: width .4s ease; }
+.loader-fields { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; max-width: 500px; }
+.lf-chip { padding: 3px 10px; border-radius: 99px; font-size: 11px; border: 1px solid var(--b-dim); color: var(--t-ghost); font-family: var(--mono); transition: all .25s; }
+.lf-chip.active { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
+.lf-chip.done  { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+
+/* ══════════════════════════════════
+   TOPBAR
+══════════════════════════════════ */
+.topbar {
+  position: sticky; top: 0; z-index: 50;
+  height: 52px;
+  background: rgba(5,13,24,0.88);
+  border-bottom: 1px solid var(--b-dim);
+  backdrop-filter: blur(16px) saturate(1.5);
+  display: flex; align-items: center; padding: 0 28px; gap: 16px;
+}
+
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand-mark {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: linear-gradient(135deg, #0a2a4a, #1a5090);
+  border: 1px solid var(--b-soft);
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.brand-name { font-size: 14px; font-weight: 700; color: var(--t-white); letter-spacing: .06em; }
+.brand-ver  { font-size: 10px; color: var(--t-dim); font-family: var(--mono); }
+
+.topbar-divider { width: 1px; height: 22px; background: var(--b-dim); }
+
+/* Pill nav */
+.pill-nav { display: flex; gap: 2px; background: rgba(12,29,48,.8); border: 1px solid var(--b-dim); border-radius: 99px; padding: 3px; }
+.pill { padding: 5px 18px; border-radius: 99px; font-size: 12px; cursor: pointer; border: none; background: transparent; color: var(--t-mid); font-family: var(--sans); transition: all .15s; display: flex; align-items: center; gap: 6px; }
+.pill:hover { color: var(--t-bright); }
+.pill.active { background: linear-gradient(135deg, rgba(10,42,74,.9), rgba(26,80,144,.9)); color: var(--cyan); border: 1px solid rgba(77,217,255,.25); }
+
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.status-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 12px; border-radius: 99px;
+  background: var(--c-navy); border: 1px solid var(--b-dim);
+  font-size: 11px; color: var(--t-mid); font-family: var(--mono);
+}
+.status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 2.5s infinite; }
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:.3} }
+
+.btn-refresh {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 18px; border-radius: 99px;
+  background: linear-gradient(135deg, rgba(10,42,74,.9), rgba(20,65,115,.9));
+  border: 1px solid var(--b-soft);
+  color: var(--cyan); font-size: 12px; font-family: var(--sans); cursor: pointer;
+  transition: all .15s; letter-spacing: .02em;
+}
+.btn-refresh svg { width: 12px; height: 12px; }
+.btn-refresh:hover { border-color: var(--b-glow); box-shadow: 0 0 16px rgba(77,217,255,.15); }
+.btn-refresh:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ══════════════════════════════════
+   LAYOUT
+══════════════════════════════════ */
+.wrap { max-width: 1340px; margin: 0 auto; padding: 24px 24px; }
+.panel { display: none; animation: fadeUp .22s ease; }
+.panel.active { display: block; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(5px) } to { opacity:1; transform:none } }
+
+/* ══════════════════════════════════
+   SECTION HEADER
+══════════════════════════════════ */
+.sec-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 20px; }
+.sec-header-left h2 { font-size: 20px; font-weight: 600; color: var(--t-white); margin-bottom: 3px; }
+.sec-header-left p  { font-size: 12px; color: var(--t-dim); font-family: var(--mono); }
+.sec-header-right { display: flex; gap: 8px; align-items: center; }
+
+/* ══════════════════════════════════
+   GLOBAL STATS ROW
+══════════════════════════════════ */
+.global-stats { display: flex; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; }
+.gstat {
+  flex: 1; min-width: 110px;
+  background: var(--c-ocean);
+  border: 1px solid var(--b-dim);
+  border-radius: var(--rl);
+  padding: 14px 16px;
+  position: relative; overflow: hidden;
+  transition: border-color .15s;
+}
+.gstat::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: var(--accent-color, var(--cyan));
+  opacity: .6;
+}
+.gstat:hover { border-color: var(--b-soft); }
+.gstat-val  { font-size: 28px; font-weight: 300; font-family: var(--mono); margin-bottom: 3px; }
+.gstat-label{ font-size: 10px; color: var(--t-dim); text-transform: uppercase; letter-spacing: .08em; }
+.gstat-icon { position: absolute; right: 12px; top: 12px; font-size: 18px; opacity: .25; }
+
+/* ══════════════════════════════════
+   FIELD BRIEFING CARDS
+══════════════════════════════════ */
+.briefing-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+@media(max-width:880px){ .briefing-grid { grid-template-columns: 1fr; } }
+
+.bc {
+  background: var(--c-ocean);
+  border: 1px solid var(--b-dim);
+  border-radius: var(--rxl);
+  overflow: hidden;
+  transition: border-color .2s, transform .2s, box-shadow .2s;
+  position: relative;
+}
+.bc::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(135deg, rgba(255,255,255,.015) 0%, transparent 60%);
+}
+.bc:hover {
+  border-color: var(--b-soft);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 40px rgba(0,0,0,.4), 0 0 0 1px rgba(77,217,255,.06);
+}
+
+/* Card top accent bar */
+.bc-accent { height: 2px; }
+
+.bc-head {
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--b-dim);
+  display: flex; align-items: center; gap: 12px;
+}
+.bc-icon {
+  width: 40px; height: 40px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.bc-label { font-size: 14px; font-weight: 600; color: var(--t-white); }
+.bc-sublabel { font-size: 11px; color: var(--t-dim); font-family: var(--mono); margin-top: 2px; }
+.bc-counters { margin-left: auto; display: flex; gap: 14px; text-align: center; flex-shrink: 0; }
+.bc-counter-num { font-size: 17px; font-weight: 400; font-family: var(--mono); }
+.bc-counter-lbl { font-size: 9px; color: var(--t-dim); text-transform: uppercase; letter-spacing: .05em; }
+
+/* AI Summary section */
+.bc-ai {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--b-dim);
+  background: rgba(4,16,32,.4);
+}
+.bc-ai-header {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 10px; color: var(--t-dim);
+  text-transform: uppercase; letter-spacing: .08em;
+  margin-bottom: 10px;
+}
+.ai-badge {
+  padding: 2px 7px; border-radius: 99px;
+  background: linear-gradient(90deg, rgba(77,217,255,.12), rgba(176,126,243,.12));
+  border: 1px solid rgba(77,217,255,.2);
+  color: var(--cyan); font-size: 10px; font-family: var(--mono);
+  display: flex; align-items: center; gap: 4px;
+}
+.ai-pulse { width: 5px; height: 5px; border-radius: 50%; background: var(--cyan); animation: blink 1.8s infinite; }
+.bc-ai-bullets { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.bc-ai-bullets li {
+  font-size: 12.5px; color: var(--t-mid); line-height: 1.7;
+  padding-left: 16px; position: relative;
+}
+.bc-ai-bullets li::before { content: '▸'; position: absolute; left: 0; color: var(--cyan); font-size: 11px; top: 1px; }
+.ai-loading { font-size: 12px; color: var(--t-ghost); font-style: italic; }
+
+/* Hot keywords */
+.bc-hot {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--b-dim);
+}
+.bc-section-label {
+  font-size: 10px; color: var(--t-dim);
+  text-transform: uppercase; letter-spacing: .08em;
+  margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+}
+.kw-flow { display: flex; flex-wrap: wrap; gap: 5px; }
+.kw-chip {
+  padding: 3px 10px; border-radius: 99px; font-size: 11px;
+  border: 1px solid; cursor: default; font-family: var(--mono);
+  transition: filter .15s;
+}
+.kw-chip:hover { filter: brightness(1.3); }
+
+/* Top papers */
+.bc-papers { padding: 12px 18px; }
+.paper-row {
+  display: flex; gap: 10px; padding: 8px 0;
+  border-bottom: 1px solid rgba(20,70,120,.2);
+  cursor: pointer; transition: all .12s;
+}
+.paper-row:last-child { border-bottom: none; }
+.paper-row:hover .paper-t { color: var(--cyan); }
+.paper-num {
+  font-size: 10px; font-family: var(--mono); color: var(--t-ghost);
+  width: 16px; flex-shrink: 0; padding-top: 2px;
+}
+.paper-body { flex: 1; }
+.paper-t { font-size: 12px; color: var(--t-bright); line-height: 1.5; margin-bottom: 3px; transition: color .12s; }
+.paper-m { display: flex; gap: 8px; font-size: 10px; color: var(--t-dim); font-family: var(--mono); flex-wrap: wrap; }
+.paper-j { color: var(--cyan); }
+.paper-new { color: var(--green); }
+.paper-star{ color: var(--gold); }
+
+/* ══════════════════════════════════
+   ARTICLES PAGE
+══════════════════════════════════ */
+.art-controls {
+  display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;
+  background: var(--c-ocean); border: 1px solid var(--b-dim);
+  border-radius: var(--rl); padding: 12px 16px;
+}
+.search-box { position: relative; flex: 1; min-width: 200px; max-width: 380px; }
+.search-box svg { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); width: 13px; height: 13px; color: var(--t-dim); }
+.search-box input {
+  width: 100%; padding: 8px 10px 8px 34px;
+  background: var(--c-navy); border: 1px solid var(--b-dim);
+  border-radius: 99px; color: var(--t-bright); font-size: 13px;
+  outline: none; transition: border-color .12s; font-family: var(--sans);
+}
+.search-box input:focus { border-color: var(--b-med); }
+.search-box input::placeholder { color: var(--t-ghost); }
+select.sel {
+  padding: 7px 14px; background: var(--c-navy); border: 1px solid var(--b-dim);
+  border-radius: 99px; color: var(--t-mid); font-size: 12px;
+  cursor: pointer; outline: none; font-family: var(--sans);
+}
+.art-tally { margin-left: auto; font-size: 11px; color: var(--t-dim); font-family: var(--mono); }
+
+.field-filter { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.ff-btn {
+  padding: 5px 13px; border-radius: 99px; font-size: 11.5px;
+  cursor: pointer; border: 1px solid var(--b-dim);
+  background: transparent; color: var(--t-dim);
+  font-family: var(--sans); transition: all .12s;
+}
+.ff-btn:hover { color: var(--t-mid); border-color: var(--b-soft); }
+.ff-btn.on { border-color: var(--accent-color, var(--cyan)); background: rgba(77,217,255,.08); color: var(--accent-color, var(--cyan)); }
+
+/* Article card */
+.art-stack { display: flex; flex-direction: column; gap: 10px; }
+.acard {
+  background: var(--c-ocean); border: 1px solid var(--b-dim);
+  border-radius: var(--rl); padding: 16px 18px;
+  transition: border-color .15s; position: relative; overflow: hidden;
+}
+.acard::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+  background: var(--field-color, var(--b-soft));
+}
+.acard:hover { border-color: var(--b-soft); }
+.acard-top { display: flex; gap: 12px; margin-bottom: 8px; }
+.acard-title { font-size: 13px; font-weight: 500; line-height: 1.55; flex: 1; }
+.acard-title a { color: var(--t-bright); text-decoration: none; transition: color .12s; }
+.acard-title a:hover { color: var(--cyan); }
+.acard-tags { display: flex; gap: 4px; flex-wrap: wrap; flex-shrink: 0; align-items: flex-start; }
+.tag {
+  padding: 2px 7px; border-radius: 99px; font-size: 10px;
+  border: 1px solid; white-space: nowrap; font-family: var(--mono);
+}
+.tag.new  { color: var(--green); border-color: rgba(62,207,142,.3); background: var(--green-dim); }
+.tag.top  { color: var(--gold);  border-color: rgba(232,196,106,.3); background: var(--gold-dim);  }
+.acard-meta { font-size: 11px; color: var(--t-dim); display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; font-family: var(--mono); }
+.acard-meta .mj { color: var(--cyan); }
+.acard-abs { font-size: 12px; color: var(--t-mid); line-height: 1.75; margin-bottom: 8px; }
+.acard-foot { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.lnk {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 11px; border-radius: 99px; font-size: 11px;
+  border: 1px solid var(--b-dim); background: transparent;
+  color: var(--t-dim); cursor: pointer; text-decoration: none; transition: all .12s;
+}
+.lnk:hover { background: var(--c-navy); color: var(--t-mid); }
+.lnk.pm { border-color: rgba(77,217,255,.3); color: var(--cyan); }
+.lnk.pm:hover { background: var(--cyan-dim); }
+.abs-btn { background: none; border: none; color: var(--cyan); font-size: 11px; cursor: pointer; font-family: var(--sans); }
+.abs-btn:hover { text-decoration: underline; }
+.kwtag { font-size: 10px; color: var(--t-ghost); background: var(--c-navy); padding: 2px 7px; border-radius: 4px; font-family: var(--mono); }
+
+/* Pagination */
+.pager { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 20px; }
+.pager-info { font-size: 11px; color: var(--t-dim); font-family: var(--mono); }
+.btn-page {
+  padding: 7px 18px; border-radius: 99px; font-size: 12px;
+  border: 1px solid var(--b-dim); background: transparent;
+  color: var(--t-mid); cursor: pointer; font-family: var(--sans); transition: all .12s;
+}
+.btn-page:hover { border-color: var(--b-soft); color: var(--t-bright); }
+.btn-page:disabled { opacity: .3; cursor: not-allowed; }
+
+.empty { text-align: center; padding: 60px; color: var(--t-ghost); font-size: 13px; }
+</style>
+</head>
+<body>
+
+<!-- ── LOADER ── -->
+<div class="loader" id="loader">
+  <div class="loader-orb">📡</div>
+  <div class="loader-title">ResearchPulse</div>
+  <div class="loader-sub">BIOMEDICAL INTELLIGENCE · REAL-TIME</div>
+  <div class="loader-msg" id="lmsg">正在连接 PubMed 数据库…</div>
+  <div class="loader-track"><div class="loader-fill" id="lbar" style="width:0%"></div></div>
+  <div class="loader-fields" id="lfields"></div>
+</div>
+
+<!-- ── TOPBAR ── -->
+<nav class="topbar">
+  <div class="brand">
+    <div class="brand-mark">📡</div>
+    <div>
+      <div class="brand-name">RESEARCH<span style="color:var(--cyan)">PULSE</span></div>
+      <div class="brand-ver">BIOMEDICAL INTELLIGENCE</div>
+    </div>
+  </div>
+  <div class="topbar-divider"></div>
+  <div class="pill-nav">
+    <button class="pill active" onclick="goPanel('brief',this)">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      动态简报
+    </button>
+    <button class="pill" onclick="goPanel('arts',this)">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      文献数据库
+    </button>
+  </div>
+  <div class="topbar-right">
+    <div class="status-pill">
+      <span class="status-dot"></span>
+      <span id="update-label">未更新</span>
+    </div>
+    <button class="btn-refresh" id="refresh-btn" onclick="startFetch()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      刷新动态
+    </button>
+  </div>
+</nav>
+
+<!-- ── MAIN ── -->
+<div class="wrap">
+
+  <!-- BRIEFING -->
+  <div class="panel active" id="panel-brief">
+    <div class="sec-header" style="margin-bottom:18px">
+      <div class="sec-header-left">
+        <h2>今日研究动态简报</h2>
+        <p id="brief-sub">—</p>
+      </div>
+    </div>
+    <div class="global-stats" id="gstats"></div>
+    <div class="briefing-grid" id="brief-grid"></div>
+  </div>
+
+  <!-- ARTICLES -->
+  <div class="panel" id="panel-arts">
+    <div class="art-controls">
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="aq" placeholder="搜索标题、关键词、作者…" oninput="filterArts()">
+      </div>
+      <select class="sel" id="asort" onchange="filterArts()">
+        <option value="date">最新优先</option>
+        <option value="top">顶刊优先</option>
+        <option value="recent">仅近3月</option>
+      </select>
+      <span class="art-tally" id="atally">—</span>
+    </div>
+    <div class="field-filter" id="field-filter"></div>
+    <div id="art-list"></div>
+    <div class="pager" id="pager" style="display:none">
+      <button class="btn-page" id="pprev" onclick="pgChange(-1)">← 上一页</button>
+      <span class="pager-info" id="pginfo"></span>
+      <button class="btn-page" id="pnext" onclick="pgChange(1)">下一页 →</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ════════════════════════
+// CONFIG
+// ════════════════════════
+const DS_KEY  = 'sk-303a69720efb4e18b82c8083821825c2';
+const PM_BASE = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
+const PG      = 12;
+
+const FIELDS = [
+  { key:'nano',   emoji:'🧫', label:'纳米抗体 / VHH',    color:'#4dd9ff', bg:'rgba(77,217,255,.12)',
+    q:'"nanobody" OR "single domain antibody" OR "VHH antibody" OR "camelid antibody"',
+    kws:['VHH','camelid','phage display','epitope','CDR','nanobody','affinity','alpaca','llama'] },
+  { key:'mono',   emoji:'🔬', label:'全长单克隆抗体',     color:'#3ecf8e', bg:'rgba(62,207,142,.12)',
+    q:'"monoclonal antibody" AND (cancer OR autoimmune OR therapeutic OR "clinical trial")',
+    kws:['IgG1','Fc region','ADCC','glycosylation','humanization','FcRn','half-life','Fc engineering'] },
+  { key:'adc',    emoji:'💊', label:'ADC 抗体偶联药物',   color:'#f5a623', bg:'rgba(245,166,35,.12)',
+    q:'"antibody drug conjugate" OR "ADC" AND (cancer OR payload OR linker OR clinical)',
+    kws:['HER2','TROP2','payload','DAR','cleavable','MMAE','DM1','SN-38','bystander effect','linker'] },
+  { key:'bisp',   emoji:'🔗', label:'双抗 / 多特异性抗体', color:'#b07ef3', bg:'rgba(176,126,243,.12)',
+    q:'"bispecific antibody" OR "bispecific" AND (cancer OR "T cell" OR clinical)',
+    kws:['CD3','T cell engager','EGFR','PD-1','CD20','CrossMab','DART','half-life extension'] },
+  { key:'immu',   emoji:'🛡️', label:'肿瘤免疫治疗',       color:'#3ecf8e', bg:'rgba(62,207,142,.12)',
+    q:'("checkpoint inhibitor" OR "CAR-T" OR "PD-1" OR "PD-L1" OR "tumor immunotherapy") AND cancer',
+    kws:['PD-1','PD-L1','CTLA-4','CAR-T','TME','TIL','NK cell','macrophage','resistance','combination'] },
+  { key:'protac', emoji:'🔧', label:'PROTAC 靶向降解',    color:'#2dd4bf', bg:'rgba(45,212,191,.12)',
+    q:'(PROTAC OR "proteolysis targeting chimera" OR "targeted protein degradation") AND (ubiquitin OR E3)',
+    kws:['CRBN','VHL','E3 ligase','ubiquitin','proteasome','warhead','ternary complex','degrader','BRD4','KRAS'] },
+  { key:'lytac',  emoji:'🧬', label:'LYTAC · 溶酶体降解', color:'#f472b6', bg:'rgba(244,114,182,.12)',
+    q:'("LYTAC" OR "lysosome targeting chimera" OR "extracellular protein degradation" OR "ATTEC" OR "AUTAC")',
+    kws:['lysosome','M6Pn','CI-M6PR','ASGPR','autophagy','extracellular degradation','endosome'] },
+  { key:'abpr',   emoji:'💉', label:'抗体-PROTAC 偶联',   color:'#fb7185', bg:'rgba(251,113,133,.12)',
+    q:'("antibody PROTAC" OR "AbTAC" OR "bispecific degrader" OR "immunoPROTAC" OR "PROTAC antibody conjugate")',
+    kws:['AbTAC','immunoPROTAC','bispecific degrader','intracellular delivery','tumor targeting','PROTAC conjugate'] },
+  { key:'molglu', emoji:'🧪', label:'Molecular Glue',     color:'#818cf8', bg:'rgba(129,140,248,.12)',
+    q:'("molecular glue" OR "molecular glue degrader" OR "cereblon modulator") AND (protein OR cancer)',
+    kws:['cereblon','CRBN','IMiD','thalidomide','neosubstrate','CRL4','IKZF1','Helios','glue degrader'] },
+  { key:'aidd',   emoji:'🤖', label:'AI 辅助药物设计',    color:'#fbbf24', bg:'rgba(251,191,36,.12)',
+    q:'("AlphaFold" OR "machine learning" AND antibody OR "deep learning" AND protein OR "generative model" AND drug OR "AI drug")',
+    kws:['AlphaFold','RoseTTAFold','deep learning','transformer','diffusion model','GNN','de novo design','docking','ADMET'] },
+];
+
+const TOP_J = ['Nature','Science','Cell','Nature Medicine','Nature Biotechnology','Nature Communications',
+  'New England Journal','NEJM','Lancet','JAMA','Cancer Cell','Immunity',
+  'Journal of Clinical Oncology','Clinical Cancer Research','mAbs','Journal of Medicinal Chemistry',
+  'Angewandte Chemie','PNAS','eLife','Drug Discovery Today'];
+
+let allArts=[], filteredArts=[], artPage=1, activeField='all';
+
+// ════════════════════════
+// UTILS
+// ════════════════════════
+const monthN={Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+function isRecent(y,m){ const ago=new Date(); ago.setMonth(ago.getMonth()-3); return new Date(+y||(+y||2000),(monthN[m]||1)-1,1)>=ago; }
+function isTop(j){ return TOP_J.some(x=>j.toLowerCase().includes(x.toLowerCase())); }
+function dateSort(a,b){ return b.year.localeCompare(a.year)||b.month.localeCompare(a.month); }
+
+// ════════════════════════
+// PUBMED
+// ════════════════════════
+async function fetchField(f){
+  const q=encodeURIComponent(f.q);
+  const s=await(await fetch(`${PM_BASE}/esearch.fcgi?db=pubmed&term=${q}&retmax=20&sort=pub+date&retmode=json`)).json();
+  const ids=s.esearchresult?.idlist||[];
+  if(!ids.length)return[];
+  const xml=await(await fetch(`${PM_BASE}/efetch.fcgi?db=pubmed&id=${ids.join(',')}&retmode=xml`)).text();
+  return parseXML(xml,f.key);
+}
+
+function parseXML(xml,fk){
+  const doc=new DOMParser().parseFromString(xml,'text/xml');
+  const out=[];
+  doc.querySelectorAll('PubmedArticle').forEach(el=>{
+    try{
+      const title=el.querySelector('ArticleTitle')?.textContent?.trim()||'';
+      let abs=''; el.querySelectorAll('AbstractText').forEach(p=>{const l=p.getAttribute('Label');abs+=(l?l+': ':'')+p.textContent+' ';}); abs=abs.trim();
+      const au=[]; el.querySelectorAll('Author').forEach(a=>{const ln=a.querySelector('LastName')?.textContent||'';const fn=a.querySelector('ForeName')?.textContent||'';if(ln)au.push(fn?fn[0]+'. '+ln:ln);});
+      const j=el.querySelector('Journal > Title')?.textContent||el.querySelector('ISOAbbreviation')?.textContent||'';
+      const y=el.querySelector('PubDate > Year')?.textContent||'';
+      const m=el.querySelector('PubDate > Month')?.textContent||'';
+      const pmid=el.querySelector('PMID')?.textContent||'';
+      const doiEl=[...el.querySelectorAll('ArticleId')].find(e=>e.getAttribute('IdType')==='doi');
+      const doi=doiEl?.textContent||'';
+      const kw=[]; el.querySelectorAll('Keyword').forEach(k=>{if(k.textContent)kw.push(k.textContent.trim());});
+      if(pmid&&title) out.push({pmid,title,abstract:abs,authors:au,journal:j,year:y,month:m,doi,keywords:kw,fieldKey:fk,date:y+(m?' '+m:''),recent:isRecent(y,m),top:isTop(j)});
+    }catch(e){}
+  });
+  return out;
+}
+
+// ════════════════════════
+// DEEPSEEK SUMMARY
+// ════════════════════════
+async function aiSummary(field, arts){
+  if(!arts.length) return ['暂无足够文献生成摘要。'];
+  const titles=arts.slice(0,12).map((a,i)=>`${i+1}. [${a.journal}] ${a.title} (${a.date})`).join('\n');
+  const prompt=`你是资深生物医药研究员。基于以下【${field.label}】领域的最新PubMed文献，用中文生成3-4条核心研究动态要点。
+
+文献列表：
+${titles}
+
+要求：
+- 每条1-2句话，突出核心发现或趋势
+- 重点涵盖：技术突破、主要靶点、临床进展
+- 语言精炼专业，面向科研人员
+- 格式：每条以"•"开头
+
+只输出要点，无其他文字：`;
+
+  const r=await fetch('https://api.deepseek.com/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+DS_KEY},
+    body:JSON.stringify({model:'deepseek-chat',messages:[{role:'user',content:prompt}],max_tokens:450,temperature:0.55})
+  });
+  const d=await r.json();
+  return (d.choices?.[0]?.message?.content||'').split('\n').filter(l=>l.trim().startsWith('•')).map(l=>l.replace(/^•\s*/,'').trim()).filter(Boolean);
+}
+
+// ════════════════════════
+// HOT KEYWORDS
+// ════════════════════════
+function hotKws(field, arts){
+  const freq={};
+  arts.forEach(a=>{
+    const txt=(a.title+' '+a.abstract).toLowerCase();
+    field.kws.forEach(w=>{ if(txt.includes(w.toLowerCase())) freq[w]=(freq[w]||0)+1; });
+  });
+  return Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,9);
+}
+
+// ════════════════════════
+// MAIN FETCH
+// ════════════════════════
+async function startFetch(){
+  document.getElementById('refresh-btn').disabled=true;
+  const loader=document.getElementById('loader');
+  loader.style.display='flex'; loader.classList.remove('out');
+  allArts=[];
+
+  // Build chips
+  document.getElementById('lfields').innerHTML=FIELDS.map(f=>`<span class="lf-chip" id="lfc-${f.key}">${f.emoji} ${f.label}</span>`).join('');
+
+  // Phase 1: PubMed
+  for(let i=0;i<FIELDS.length;i++){
+    const f=FIELDS[i];
+    document.getElementById('lmsg').textContent=`[${i+1}/${FIELDS.length}] 抓取：${f.label}`;
+    document.getElementById('lbar').style.width=Math.round(i/FIELDS.length*45)+'%';
+    document.getElementById('lfc-'+f.key).className='lf-chip active';
+    try{ const a=await fetchField(f); allArts.push(...a); document.getElementById('lfc-'+f.key).className='lf-chip done'; }
+    catch(e){ document.getElementById('lfc-'+f.key).className='lf-chip'; console.warn(f.label,e); }
+  }
+
+  // Dedup + sort
+  const seen=new Set();
+  allArts=allArts.filter(a=>{if(seen.has(a.pmid))return false;seen.add(a.pmid);return true;});
+  allArts.sort(dateSort);
+
+  // Phase 2: AI
+  const summaries={};
+  for(let i=0;i<FIELDS.length;i++){
+    const f=FIELDS[i];
+    document.getElementById('lbar').style.width=(45+Math.round(i/FIELDS.length*55))+'%';
+    document.getElementById('lmsg').textContent=`[${i+1}/${FIELDS.length}] AI 分析：${f.label}`;
+    try{ summaries[f.key]=await aiSummary(f,allArts.filter(a=>a.fieldKey===f.key)); }
+    catch(e){ summaries[f.key]=['AI 摘要暂不可用，请稍后重试。']; }
+  }
+
+  document.getElementById('lbar').style.width='100%';
+  document.getElementById('lmsg').textContent='✓ 加载完成';
+
+  setTimeout(()=>{
+    loader.classList.add('out');
+    setTimeout(()=>{ loader.style.display='none'; },500);
+    renderBrief(summaries);
+    buildFieldFilter();
+    filterArts();
+    document.getElementById('brief-sub').textContent=
+      `更新于 ${new Date().toLocaleString('zh-CN')} · 共 ${allArts.length} 篇文献 · ${FIELDS.length} 个研究方向`;
+    document.getElementById('update-label').textContent=
+      new Date().getHours()+':'+String(new Date().getMinutes()).padStart(2,'0')+' 已同步';
+    document.getElementById('refresh-btn').disabled=false;
+  },600);
+}
+
+// ════════════════════════
+// RENDER BRIEFING
+// ════════════════════════
+function renderBrief(summaries){
+  const jSet=new Set(allArts.map(a=>a.journal));
+  document.getElementById('gstats').innerHTML=[
+    {val:allArts.length,   lbl:'文献总数',  icon:'📚', c:'var(--cyan)',   ac:'var(--cyan)'},
+    {val:allArts.filter(a=>a.recent).length,lbl:'近3月新文献',icon:'🆕',c:'var(--green)',ac:'var(--green)'},
+    {val:allArts.filter(a=>a.top).length,   lbl:'顶刊文献',  icon:'⭐', c:'var(--gold)',   ac:'var(--gold)'},
+    {val:FIELDS.length,    lbl:'研究方向',  icon:'🔭', c:'var(--violet)', ac:'var(--violet)'},
+    {val:jSet.size,        lbl:'涉及期刊',  icon:'📰', c:'var(--t-mid)',  ac:'var(--t-mid)'},
+  ].map(s=>`<div class="gstat" style="--accent-color:${s.ac}">
+    <span class="gstat-icon">${s.icon}</span>
+    <div class="gstat-val" style="color:${s.c}">${s.val}</div>
+    <div class="gstat-label">${s.lbl}</div>
+  </div>`).join('');
+
+  document.getElementById('brief-grid').innerHTML=FIELDS.map(f=>{
+    const arts=allArts.filter(a=>a.fieldKey===f.key);
+    const recent=arts.filter(a=>a.recent).length;
+    const top=arts.filter(a=>a.top).length;
+    const bullets=summaries[f.key]||[];
+    const kws=hotKws(f,arts);
+    const papers=arts.slice(0,4);
+
+    return `<div class="bc" style="--field-c:${f.color}">
+      <div class="bc-accent" style="background:linear-gradient(90deg,${f.color},transparent)"></div>
+      <div class="bc-head">
+        <div class="bc-icon" style="background:${f.bg};border:1px solid ${f.color}30">${f.emoji}</div>
+        <div style="flex:1">
+          <div class="bc-label">${f.label}</div>
+          <div class="bc-sublabel">${arts.length} 篇文献</div>
+        </div>
+        <div class="bc-counters">
+          <div class="bc-counter-num" style="color:${f.color}">${arts.length}</div><div class="bc-counter-lbl">文献</div>
+          <div style="width:1px;background:var(--b-dim);margin:0 2px"></div>
+          <div class="bc-counter-num" style="color:var(--green)">${recent}</div><div class="bc-counter-lbl">近期</div>
+          <div style="width:1px;background:var(--b-dim);margin:0 2px"></div>
+          <div class="bc-counter-num" style="color:var(--gold)">${top}</div><div class="bc-counter-lbl">顶刊</div>
+        </div>
+      </div>
+
+      <div class="bc-ai">
+        <div class="bc-ai-header">
+          <span class="ai-badge"><span class="ai-pulse"></span>DeepSeek AI</span>
+          领域动态摘要
+        </div>
+        ${bullets.length
+          ? `<ul class="bc-ai-bullets">${bullets.map(b=>`<li>${b}</li>`).join('')}</ul>`
+          : `<p class="ai-loading">AI 摘要暂不可用</p>`}
+      </div>
+
+      ${kws.length ? `<div class="bc-hot">
+        <div class="bc-section-label">🔥 研究热点</div>
+        <div class="kw-flow">
+          ${kws.map(([w,n])=>`<span class="kw-chip" style="color:${f.color};border-color:${f.color}35;background:${f.bg}">${w}<span style="opacity:.5;margin-left:4px;font-size:9px">${n}</span></span>`).join('')}
+        </div>
+      </div>` : ''}
+
+      ${papers.length ? `<div class="bc-papers">
+        <div class="bc-section-label">📌 最新文献</div>
+        ${papers.map((a,i)=>`<div class="paper-row" onclick="window.open('https://pubmed.ncbi.nlm.nih.gov/${a.pmid}/','_blank')">
+          <div class="paper-num">${i+1}</div>
+          <div class="paper-body">
+            <div class="paper-t">${a.title.length>88?a.title.slice(0,88)+'…':a.title}</div>
+            <div class="paper-m">
+              <span class="paper-j">${a.journal.length>32?a.journal.slice(0,32)+'…':a.journal}</span>
+              <span>${a.date}</span>
+              ${a.recent?'<span class="paper-new">🆕 近期</span>':''}
+              ${a.top?'<span class="paper-star">⭐</span>':''}
+            </div>
+          </div>
+        </div>`).join('')}
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+// ════════════════════════
+// ARTICLES
+// ════════════════════════
+function buildFieldFilter(){
+  const all=[{key:'all',emoji:'🌐',label:'全部',color:'var(--cyan)',bg:'rgba(77,217,255,.08)'},...FIELDS];
+  document.getElementById('field-filter').innerHTML=all.map(f=>`
+    <button class="ff-btn ${f.key==='all'?'on':''}" data-k="${f.key}"
+      style="${f.key==='all'?`--accent-color:${f.color||'var(--cyan)'};border-color:var(--cyan);color:var(--cyan);background:rgba(77,217,255,.08)`:''}"
+      onclick="setFF('${f.key}',this,'${f.color||'var(--cyan)'}','${f.bg||'rgba(77,217,255,.08)'}')"
+    >${f.emoji||''} ${f.label}</button>`).join('');
+}
+
+function setFF(key,el,color,bg){
+  activeField=key;
+  document.querySelectorAll('.ff-btn').forEach(b=>{b.classList.remove('on');b.style.cssText='';});
+  el.classList.add('on');
+  el.style.cssText=`border-color:${color};color:${color};background:${bg};`;
+  filterArts();
+}
+
+const TAGS={
+  nano: c=>`<span class="tag" style="color:#4dd9ff;border-color:rgba(77,217,255,.3);background:rgba(77,217,255,.08)">纳米抗体</span>`,
+  mono: c=>`<span class="tag" style="color:#3ecf8e;border-color:rgba(62,207,142,.3);background:rgba(62,207,142,.08)">单克隆</span>`,
+  adc:  c=>`<span class="tag" style="color:#f5a623;border-color:rgba(245,166,35,.3);background:rgba(245,166,35,.08)">ADC</span>`,
+  bisp: c=>`<span class="tag" style="color:#b07ef3;border-color:rgba(176,126,243,.3);background:rgba(176,126,243,.08)">双抗</span>`,
+  immu: c=>`<span class="tag" style="color:#3ecf8e;border-color:rgba(62,207,142,.3);background:rgba(62,207,142,.08)">肿瘤免疫</span>`,
+  protac:c=>`<span class="tag" style="color:#2dd4bf;border-color:rgba(45,212,191,.3);background:rgba(45,212,191,.08)">PROTAC</span>`,
+  lytac: c=>`<span class="tag" style="color:#f472b6;border-color:rgba(244,114,182,.3);background:rgba(244,114,182,.08)">LYTAC</span>`,
+  abpr:  c=>`<span class="tag" style="color:#fb7185;border-color:rgba(251,113,133,.3);background:rgba(251,113,133,.08)">Ab-PROTAC</span>`,
+  molglu:c=>`<span class="tag" style="color:#818cf8;border-color:rgba(129,140,248,.3);background:rgba(129,140,248,.08)">Mol.Glue</span>`,
+  aidd:  c=>`<span class="tag" style="color:#fbbf24;border-color:rgba(251,191,36,.3);background:rgba(251,191,36,.08)">AIDD</span>`,
+};
+
+function filterArts(){
+  const q=(document.getElementById('aq')?.value||'').toLowerCase();
+  const sort=document.getElementById('asort').value;
+  let pool=[...allArts];
+  if(activeField!=='all') pool=pool.filter(a=>a.fieldKey===activeField);
+  if(sort==='recent') pool=pool.filter(a=>a.recent);
+  if(sort==='top')    pool.sort((a,b)=>(b.top?1:0)-(a.top?1:0)||dateSort(a,b));
+  if(q) pool=pool.filter(a=>a.title.toLowerCase().includes(q)||a.abstract.toLowerCase().includes(q)||a.authors.join(' ').toLowerCase().includes(q)||a.journal.toLowerCase().includes(q));
+  filteredArts=pool; artPage=1;
+  document.getElementById('atally').textContent=pool.length+' 篇';
+  renderArts();
+}
+
+function renderArts(){
+  const start=(artPage-1)*PG;
+  const page=filteredArts.slice(start,start+PG);
+  const total=filteredArts.length;
+  const pages=Math.ceil(total/PG);
+  if(!total){document.getElementById('art-list').innerHTML='<div class="empty">暂无匹配文献</div>';document.getElementById('pager').style.display='none';return;}
+
+  const fc=FIELDS.find(f=>f.key===activeField);
+  document.getElementById('art-list').innerHTML=`<div class="art-stack">${page.map(a=>{
+    const au=a.authors.length>3?a.authors.slice(0,3).join(', ')+' 等':a.authors.join(', ');
+    const absS=a.abstract.length>250?a.abstract.slice(0,250)+'…':a.abstract;
+    const hasM=a.abstract.length>250;
+    const fc2=FIELDS.find(f=>f.key===a.fieldKey);
+    return `<div class="acard" style="--field-color:${fc2?.color||'var(--b-soft)'}">
+      <div class="acard-top">
+        <div class="acard-title"><a href="https://pubmed.ncbi.nlm.nih.gov/${a.pmid}/" target="_blank">${a.title}</a></div>
+        <div class="acard-tags">
+          ${a.recent?'<span class="tag new">🆕 近期</span>':''}
+          ${a.top?'<span class="tag top">⭐ 顶刊</span>':''}
+          ${(TAGS[a.fieldKey]||(_=>''))(``)}
+        </div>
+      </div>
+      <div class="acard-meta">
+        <span class="mj">${a.journal}</span>
+        <span>${a.date}</span>
+        ${au?`<span>${au}</span>`:''}
+        <span style="color:var(--t-ghost)">PMID:${a.pmid}</span>
+      </div>
+      ${absS?`<div class="acard-abs" id="as${a.pmid}">${absS}${hasM?` <button class="abs-btn" onclick="tgl('${a.pmid}')">展开 ↓</button>`:''}</div>${hasM?`<div class="acard-abs" id="af${a.pmid}" style="display:none">${a.abstract} <button class="abs-btn" onclick="tgl('${a.pmid}')">收起 ↑</button></div>`:''}`:''}
+      <div class="acard-foot">
+        <a class="lnk pm" href="https://pubmed.ncbi.nlm.nih.gov/${a.pmid}/" target="_blank">🔗 PubMed</a>
+        ${a.doi?`<a class="lnk" href="https://doi.org/${a.doi}" target="_blank">📄 全文</a>`:''}
+        ${a.keywords.slice(0,4).map(k=>`<span class="kwtag">${k}</span>`).join('')}
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+
+  const pg=document.getElementById('pager');
+  pg.style.display=pages>1?'flex':'none';
+  document.getElementById('pginfo').textContent=`第 ${artPage} / ${pages} 页`;
+  document.getElementById('pprev').disabled=artPage===1;
+  document.getElementById('pnext').disabled=artPage===pages;
+}
+
+function tgl(pmid){
+  const s=document.getElementById('as'+pmid);
+  const f=document.getElementById('af'+pmid);
+  if(s&&f){const v=s.style.display!=='none';s.style.display=v?'none':'';f.style.display=v?'':'none';}
+}
+function pgChange(d){artPage+=d;renderArts();window.scrollTo({top:0,behavior:'smooth'});}
+
+function goPanel(id,el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  el.classList.add('active');
+}
+
+startFetch();
+</script>
+</body>
+</html>
