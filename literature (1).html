@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>抗体与TPD研究动态</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0e1117;--bg2:#161b24;--bg3:#1c222e;--bg4:#242b38;
+  --border:rgba(55,65,80,0.9);--border2:rgba(55,65,80,0.4);
+  --text:#dde3ee;--text2:#8a94a6;--text3:#556070;
+  --accent:#4f8ef7;--accent2:#1a4fa8;
+  --green:#34d399;--amber:#fbbf24;--red:#f87171;--purple:#c084fc;
+  --mono:'IBM Plex Mono',monospace;--sans:'Noto Sans SC',sans-serif;
+  --r:6px;--rl:12px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{min-height:100%;font-family:var(--sans);background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;}
+
+/* Topbar */
+.topbar{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;height:54px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:50;}
+.topbar-logo{font-size:22px;}
+.topbar-title{font-size:15px;font-weight:700;letter-spacing:.01em;}
+.topbar-sub{font-size:11px;color:var(--text3);}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+.update-time{font-size:11px;color:var(--text3);font-family:var(--mono);background:var(--bg3);padding:3px 10px;border-radius:99px;border:1px solid var(--border);}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r);font-size:13px;font-family:var(--sans);cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text);transition:all .12s;white-space:nowrap;}
+.btn svg{width:14px;height:14px;}
+.btn:hover{background:var(--bg4);}
+.btn.primary{background:var(--accent2);border-color:var(--accent);color:#fff;}
+.btn.primary:hover{background:var(--accent);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+
+/* Nav tabs */
+.nav-tabs{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 28px;display:flex;gap:2px;}
+.nav-tab{padding:10px 16px;font-size:13px;cursor:pointer;border:none;background:none;color:var(--text2);border-bottom:2px solid transparent;transition:all .15s;display:flex;align-items:center;gap:6px;}
+.nav-tab:hover{color:var(--text);}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500;}
+
+.container{max-width:1280px;margin:0 auto;padding:24px 24px;}
+
+/* Loading */
+.loading{text-align:center;padding:80px;}
+.spinner{width:40px;height:40px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-msg{font-size:13px;color:var(--text2);}
+.loading-progress{width:200px;height:3px;background:var(--bg3);border-radius:99px;margin:12px auto 0;overflow:hidden;}
+.loading-bar{height:100%;background:var(--accent);border-radius:99px;transition:width .3s;}
+
+/* Panel */
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* ── DASHBOARD ── */
+.dashboard-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+@media(max-width:900px){.dashboard-grid{grid-template-columns:1fr 1fr;}}
+
+.field-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);overflow:hidden;transition:border-color .15s;cursor:pointer;}
+.field-card:hover{border-color:var(--accent2);}
+.fc-header{padding:14px 16px 10px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border2);}
+.fc-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.fc-title{font-size:13px;font-weight:600;}
+.fc-sub{font-size:11px;color:var(--text3);margin-top:1px;}
+.fc-stats{padding:10px 16px;display:flex;gap:16px;border-bottom:1px solid var(--border2);}
+.fc-stat{text-align:center;flex:1;}
+.fc-stat-num{font-size:18px;font-weight:300;font-family:var(--mono);}
+.fc-stat-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;}
+.fc-body{padding:12px 16px;}
+.fc-body-title{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+
+/* Hot keywords */
+.keywords{display:flex;flex-wrap:wrap;gap:5px;}
+.kw{padding:3px 8px;border-radius:99px;font-size:11px;cursor:default;}
+
+/* Recent headlines */
+.headlines{display:flex;flex-direction:column;gap:6px;}
+.headline{font-size:12px;color:var(--text2);line-height:1.5;padding-left:10px;border-left:2px solid var(--border);cursor:pointer;transition:border-color .12s;}
+.headline:hover{border-left-color:var(--accent);color:var(--text);}
+.headline .journal-tag{font-family:var(--mono);font-size:10px;color:var(--text3);}
+
+/* Trend bar */
+.trend-row{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.trend-label{font-size:11px;color:var(--text2);width:80px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.trend-bar-bg{flex:1;height:6px;background:var(--bg3);border-radius:99px;overflow:hidden;}
+.trend-bar-fill{height:100%;border-radius:99px;transition:width .5s;}
+.trend-count{font-size:10px;color:var(--text3);font-family:var(--mono);width:24px;text-align:right;}
+
+/* Global summary */
+.global-summary{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:18px 20px;margin-bottom:22px;}
+.gs-title{font-size:13px;font-weight:600;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.gs-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.gs-stat{text-align:center;background:var(--bg3);border-radius:var(--r);padding:10px;}
+.gs-num{font-size:22px;font-weight:300;font-family:var(--mono);}
+.gs-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:2px;}
+
+/* ── ARTICLES ── */
+.filter-bar{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.search-wrap{position:relative;flex:1;min-width:200px;max-width:340px;}
+.search-wrap svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:13px;height:13px;color:var(--text3);}
+.search-wrap input{width:100%;padding:7px 10px 7px 30px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:13px;outline:none;}
+.search-wrap input:focus{border-color:var(--accent);}
+.search-wrap input::placeholder{color:var(--text3);}
+select.flt{padding:7px 10px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);color:var(--text);font-size:13px;cursor:pointer;outline:none;}
+
+.articles{display:flex;flex-direction:column;gap:10px;}
+.article-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--rl);padding:16px 18px;transition:border-color .15s;}
+.article-card:hover{border-color:var(--accent2);}
+.ac-top{display:flex;align-items:flex-start;gap:12px;margin-bottom:8px;}
+.ac-title{font-size:13px;font-weight:500;line-height:1.55;flex:1;}
+.ac-title a{color:var(--text);text-decoration:none;}
+.ac-title a:hover{color:var(--accent);}
+.ac-badges{display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0;}
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:500;font-family:var(--mono);}
+.badge.new{background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.2);}
+.badge.hot{background:rgba(248,113,113,.1);color:var(--red);border:1px solid rgba(248,113,113,.2);}
+.badge.nano{background:rgba(56,189,248,.1);color:#38bdf8;border:1px solid rgba(56,189,248,.2);}
+.badge.adc{background:rgba(251,146,60,.1);color:#fb923c;border:1px solid rgba(251,146,60,.2);}
+.badge.bisp{background:rgba(168,85,247,.1);color:#a855f7;border:1px solid rgba(168,85,247,.2);}
+.badge.immu{background:rgba(34,197,94,.1);color:#22c55e;border:1px solid rgba(34,197,94,.2);}
+.badge.protac{background:rgba(20,184,166,.1);color:#14b8a6;border:1px solid rgba(20,184,166,.2);}
+.badge.lytac{background:rgba(244,114,182,.1);color:#f472b6;border:1px solid rgba(244,114,182,.2);}
+.badge.abpr{background:rgba(251,113,133,.1);color:#fb7185;border:1px solid rgba(251,113,133,.2);}
+.badge.molglu{background:rgba(99,102,241,.1);color:#6366f1;border:1px solid rgba(99,102,241,.2);}
+.badge.aidd{background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.2);}
+.badge.method{background:rgba(192,132,252,.1);color:var(--purple);border:1px solid rgba(192,132,252,.2);}
+.ac-meta{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--text3);margin-bottom:8px;}
+.ac-meta .j{color:var(--accent);font-weight:500;}
+.ac-abstract{font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:8px;}
+.ac-footer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.link-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:var(--r);font-size:11px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;text-decoration:none;transition:all .12s;}
+.link-btn:hover{background:var(--bg3);color:var(--text);}
+.link-btn.pm{border-color:rgba(79,142,247,.3);color:var(--accent);}
+.toggle-abs{background:none;border:none;color:var(--accent);font-size:11px;cursor:pointer;padding:0;}
+.toggle-abs:hover{text-decoration:underline;}
+
+/* Pagination */
+.pager{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:20px;}
+.pager-info{font-size:11px;color:var(--text3);font-family:var(--mono);}
+
+/* Empty */
+.empty{text-align:center;padding:60px;color:var(--text3);font-size:13px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-logo">📡</span>
+  <div>
+    <div class="topbar-title">研究动态资讯库</div>
+    <div class="topbar-sub">抗体 · TPD · AIDD · 实时 PubMed</div>
+  </div>
+  <div class="topbar-right">
+    <span class="update-time" id="update-time">未更新</span>
+    <button class="btn primary" id="refresh-btn" onclick="startFetch()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      刷新动态
+    </button>
+  </div>
+</div>
+
+<div class="nav-tabs">
+  <button class="nav-tab active" onclick="switchPanel('dashboard',this)">📊 动态简报</button>
+  <button class="nav-tab" onclick="switchPanel('articles',this)">📄 文献列表</button>
+</div>
+
+<div class="container">
+
+  <!-- Loading -->
+  <div id="loading-box" class="loading">
+    <div class="spinner"></div>
+    <div class="loading-msg" id="loading-msg">正在抓取各领域最新文献…</div>
+    <div class="loading-progress"><div class="loading-bar" id="loading-bar" style="width:0%"></div></div>
+  </div>
+
+  <!-- Dashboard panel -->
+  <div class="panel" id="panel-dashboard">
+    <div class="global-summary">
+      <div class="gs-title">🌐 全领域概览</div>
+      <div class="gs-grid">
+        <div class="gs-stat"><div class="gs-num" id="gs-total" style="color:var(--accent)">—</div><div class="gs-label">文献总数</div></div>
+        <div class="gs-stat"><div class="gs-num" id="gs-new" style="color:var(--green)">—</div><div class="gs-label">近3月新文献</div></div>
+        <div class="gs-stat"><div class="gs-num" id="gs-journals" style="color:var(--amber)">—</div><div class="gs-label">涉及期刊</div></div>
+        <div class="gs-stat"><div class="gs-num" id="gs-fields" style="color:var(--purple)">10</div><div class="gs-label">研究方向</div></div>
+      </div>
+    </div>
+    <div class="dashboard-grid" id="dashboard-grid"></div>
+  </div>
+
+  <!-- Articles panel -->
+  <div class="panel" id="panel-articles">
+    <div class="filter-bar">
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="art-search" placeholder="搜索标题、作者、关键词…" oninput="applyArtFilter()">
+      </div>
+      <select class="flt" id="art-field" onchange="applyArtFilter()">
+        <option value="">全部领域</option>
+        <option value="nano">纳米抗体</option>
+        <option value="mono">单克隆抗体</option>
+        <option value="adc">ADC</option>
+        <option value="bisp">双抗</option>
+        <option value="immu">肿瘤免疫</option>
+        <option value="protac">PROTAC</option>
+        <option value="lytac">LYTAC</option>
+        <option value="abpr">抗体-PROTAC</option>
+        <option value="molglu">Molecular Glue</option>
+        <option value="aidd">AIDD</option>
+      </select>
+      <select class="flt" id="art-sort" onchange="applyArtFilter()">
+        <option value="date">按日期</option>
+        <option value="journal">按期刊</option>
+        <option value="new">仅近3月</option>
+        <option value="highif">仅高影响力</option>
+      </select>
+    </div>
+    <div id="art-list"></div>
+    <div class="pager" id="pager" style="display:none">
+      <button class="btn" id="prev-btn" onclick="changePage(-1)">← 上一页</button>
+      <span class="pager-info" id="pager-info"></span>
+      <button class="btn" id="next-btn" onclick="changePage(1)">下一页 →</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const BASE = 'https://eutils.ncbi.nlm.nih.gov/entrez/eutils';
+const PAGE = 15;
+
+// ── 研究方向配置 ──
+const FIELDS = [
+  { key:'nano',   icon:'🧫', label:'纳米抗体',      color:'#38bdf8', bg:'rgba(56,189,248,.12)',
+    query:'"nanobody" OR "single domain antibody" OR "VHH"',
+    hotwords:['VHH','Camelid','phage display','alpaca','llama','epitope','CDR','affinity'] },
+  { key:'mono',   icon:'🔬', label:'单克隆抗体',     color:'#34d399', bg:'rgba(52,211,153,.12)',
+    query:'"monoclonal antibody" AND (cancer OR tumor OR therapeutic OR clinical)',
+    hotwords:['IgG','Fc','glycosylation','ADCC','CDC','humanization','Fc engineering'] },
+  { key:'adc',    icon:'💊', label:'ADC',            color:'#fb923c', bg:'rgba(251,146,60,.12)',
+    query:'"antibody drug conjugate" OR "ADC" AND (cancer OR payload OR linker)',
+    hotwords:['payload','linker','DAR','cleavable','MMAE','DM1','SN-38','HER2','TROP2'] },
+  { key:'bisp',   icon:'🔗', label:'双抗/多抗',      color:'#a855f7', bg:'rgba(168,85,247,.12)',
+    query:'"bispecific antibody" OR "bsAb" OR "multispecific antibody"',
+    hotwords:['T cell engager','CD3','EGFR','HER2','PD-1','CD20','bispecific','CrossMab'] },
+  { key:'immu',   icon:'🛡️', label:'肿瘤免疫',       color:'#22c55e', bg:'rgba(34,197,94,.12)',
+    query:'"tumor immunotherapy" OR "checkpoint inhibitor" OR "PD-1" OR "PD-L1" OR "CAR-T" AND cancer',
+    hotwords:['PD-1','PD-L1','CTLA-4','CAR-T','TCR','NK cell','tumor microenvironment','TIL'] },
+  { key:'protac', icon:'🔧', label:'PROTAC',         color:'#14b8a6', bg:'rgba(20,184,166,.12)',
+    query:'"PROTAC" OR "proteolysis targeting chimera" OR "targeted protein degradation" AND ubiquitin',
+    hotwords:['CRBN','VHL','ubiquitin','proteasome','E3 ligase','warhead','linker','degrader'] },
+  { key:'lytac',  icon:'🧬', label:'LYTAC',          color:'#f472b6', bg:'rgba(244,114,182,.12)',
+    query:'"LYTAC" OR "lysosome targeting chimera" OR "extracellular protein degradation" OR "ATTEC"',
+    hotwords:['lysosome','M6Pn','CI-M6PR','ASGPR','extracellular','degradation','autophagy'] },
+  { key:'abpr',   icon:'💉', label:'抗体-PROTAC偶联', color:'#fb7185', bg:'rgba(251,113,133,.12)',
+    query:'"antibody PROTAC" OR "AbTAC" OR "bispecific degrader" OR "immunoPROTAC" OR "Antibody conjugated PROTAC"',
+    hotwords:['AbTAC','immunoPROTAC','bispecific degrader','tumor targeting','intracellular delivery'] },
+  { key:'molglu', icon:'🧪', label:'Molecular Glue', color:'#6366f1', bg:'rgba(99,102,241,.12)',
+    query:'"molecular glue" OR "molecular glue degrader" OR "cereblon modulator" AND degrader',
+    hotwords:['cereblon','CRBN','IMiD','thalidomide','neosubstrate','glue','CRL4','IKZF1'] },
+  { key:'aidd',   icon:'🤖', label:'AIDD',           color:'#f59e0b', bg:'rgba(245,158,11,.12)',
+    query:'"AI drug design" OR "AlphaFold" OR "machine learning antibody" OR "deep learning protein" OR "generative model drug"',
+    hotwords:['AlphaFold','RoseTTAFold','deep learning','transformer','GNN','molecular docking','de novo','diffusion model'] },
+];
+
+const HIGH_IF = ['Nature','Science','Cell','Nature Medicine','Nature Biotechnology','Nature Communications',
+  'New England Journal of Medicine','Lancet','JAMA','Cancer Cell','Immunity','Journal of Clinical Oncology',
+  'Clinical Cancer Research','mAbs','Antibody Therapeutics','Journal of Medicinal Chemistry'];
+
+let allArticles = [];
+let filteredArts = [];
+let artPage = 1;
+
+// ── 时间判断 ──
+function isRecent(year, month){
+  const monthMap={Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+  const now = new Date();
+  const ago = new Date(now.getFullYear(), now.getMonth()-3, 1);
+  const d   = new Date(parseInt(year)||2000, (monthMap[month]||1)-1, 1);
+  return d >= ago;
+}
+function isHighIF(journal){
+  return HIGH_IF.some(j => journal.toLowerCase().includes(j.toLowerCase()));
+}
+
+// ── PubMed fetch ──
+async function fetchField(field){
+  const q = encodeURIComponent(field.query);
+  const searchRes = await fetch(`${BASE}/esearch.fcgi?db=pubmed&term=${q}&retmax=25&sort=pub+date&retmode=json`);
+  const searchData = await searchRes.json();
+  const ids = searchData.esearchresult?.idlist || [];
+  if(!ids.length) return [];
+  const fetchRes = await fetch(`${BASE}/efetch.fcgi?db=pubmed&id=${ids.join(',')}&retmode=xml`);
+  const xml = await fetchRes.text();
+  return parseArticles(xml, field.key);
+}
+
+function parseArticles(xml, fieldKey){
+  const doc = new DOMParser().parseFromString(xml, 'text/xml');
+  const arts = [];
+  doc.querySelectorAll('PubmedArticle').forEach(el => {
+    try {
+      const title = el.querySelector('ArticleTitle')?.textContent?.trim() || '';
+      const absParts = el.querySelectorAll('AbstractText');
+      let abs = '';
+      absParts.forEach(p => { const lbl=p.getAttribute('Label'); abs+=(lbl?lbl+': ':'')+p.textContent+' '; });
+      abs = abs.trim();
+      const authors = [];
+      el.querySelectorAll('Author').forEach(a => {
+        const ln=a.querySelector('LastName')?.textContent||'';
+        const fn=a.querySelector('ForeName')?.textContent||'';
+        if(ln) authors.push(fn?fn[0]+'. '+ln:ln);
+      });
+      const journal = el.querySelector('Journal > Title')?.textContent || el.querySelector('ISOAbbreviation')?.textContent || '';
+      const year  = el.querySelector('PubDate > Year')?.textContent  || '';
+      const month = el.querySelector('PubDate > Month')?.textContent || '';
+      const pmid  = el.querySelector('PMID')?.textContent || '';
+      const doiEl = [...el.querySelectorAll('ArticleId')].find(e=>e.getAttribute('IdType')==='doi');
+      const doi   = doiEl?.textContent || '';
+      const kwds  = [];
+      el.querySelectorAll('Keyword').forEach(k=>{ if(k.textContent) kwds.push(k.textContent.trim()); });
+      if(pmid && title){
+        arts.push({
+          pmid, title, abstract:abs, authors, journal,
+          year, month, doi, keywords:kwds,
+          fieldKey, date:`${year}${month?' '+month:''}`,
+          recent: isRecent(year,month),
+          highIF: isHighIF(journal),
+          badges: detectBadges(title+' '+abs, fieldKey),
+        });
+      }
+    } catch(e){}
+  });
+  return arts;
+}
+
+function detectBadges(text, fieldKey){
+  const t = text.toLowerCase();
+  const b = [fieldKey];
+  if(t.includes('nanobody')||t.includes('vhh')||t.includes('single domain')) b.push('nano');
+  if(t.includes('antibody drug conjugate')||t.includes(' adc ')) b.push('adc');
+  if(t.includes('bispecific')||t.includes('bsab')) b.push('bisp');
+  if(t.includes('protac')||t.includes('proteolysis targeting')) b.push('protac');
+  if(t.includes('lytac')||t.includes('lysosome targeting chimera')) b.push('lytac');
+  if(t.includes('molecular glue')||t.includes('cereblon')&&t.includes('degrader')) b.push('molglu');
+  if(t.includes('alphafold')||t.includes('machine learning')||t.includes('deep learning')) b.push('aidd');
+  if(t.includes('method')||t.includes('platform')||t.includes('protocol')) b.push('method');
+  return [...new Set(b)];
+}
+
+// ── 主抓取 ──
+async function startFetch(){
+  document.getElementById('refresh-btn').disabled = true;
+  document.getElementById('loading-box').style.display = 'block';
+  document.getElementById('panel-dashboard').classList.remove('active');
+  document.getElementById('panel-articles').classList.remove('active');
+  allArticles = [];
+
+  for(let i=0; i<FIELDS.length; i++){
+    const f = FIELDS[i];
+    document.getElementById('loading-msg').textContent = `正在抓取：${f.label}（${i+1}/${FIELDS.length}）…`;
+    document.getElementById('loading-bar').style.width = Math.round((i/FIELDS.length)*100)+'%';
+    try {
+      const arts = await fetchField(f);
+      allArticles.push(...arts);
+    } catch(e){ console.warn(f.label, e); }
+  }
+
+  // 去重
+  const seen = new Set();
+  allArticles = allArticles.filter(a => { if(seen.has(a.pmid)) return false; seen.add(a.pmid); return true; });
+  allArticles.sort((a,b) => b.year.localeCompare(a.year)||b.month.localeCompare(a.month));
+
+  document.getElementById('loading-bar').style.width = '100%';
+  document.getElementById('loading-msg').textContent = '加载完成！';
+  setTimeout(()=>{
+    document.getElementById('loading-box').style.display = 'none';
+    renderDashboard();
+    applyArtFilter();
+    document.getElementById('panel-dashboard').classList.add('active');
+    document.getElementById('update-time').textContent = '更新于 '+new Date().toLocaleTimeString('zh-CN');
+    document.getElementById('refresh-btn').disabled = false;
+  }, 400);
+}
+
+// ── Dashboard ──
+function renderDashboard(){
+  const journals = new Set(allArticles.map(a=>a.journal));
+  document.getElementById('gs-total').textContent   = allArticles.length;
+  document.getElementById('gs-new').textContent     = allArticles.filter(a=>a.recent).length;
+  document.getElementById('gs-journals').textContent= journals.size;
+
+  document.getElementById('dashboard-grid').innerHTML = FIELDS.map(f => {
+    const arts = allArticles.filter(a => a.fieldKey===f.key);
+    const recent = arts.filter(a=>a.recent);
+    const highif = arts.filter(a=>a.highIF);
+    const headlines = arts.slice(0,3);
+
+    // 关键词频率统计
+    const kwFreq = {};
+    arts.forEach(a => {
+      // 从标题和摘要提取热词
+      const combined = (a.title+' '+a.abstract).toLowerCase();
+      f.hotwords.forEach(w => {
+        if(combined.includes(w.toLowerCase())){
+          kwFreq[w] = (kwFreq[w]||0)+1;
+        }
+      });
+      a.keywords.forEach(k => {
+        if(k.length>2 && k.length<30){
+          kwFreq[k] = (kwFreq[k]||0)+1;
+        }
+      });
+    });
+    const topKws = Object.entries(kwFreq).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const maxKw  = topKws[0]?.[1] || 1;
+
+    // 靶点/关键词趋势条
+    const trendItems = topKws.slice(0,5);
+
+    return `<div class="field-card" onclick="jumpToField('${f.key}')">
+      <div class="fc-header">
+        <div class="fc-icon" style="background:${f.bg}">${f.icon}</div>
+        <div>
+          <div class="fc-title">${f.label}</div>
+          <div class="fc-sub">共 ${arts.length} 篇文献</div>
+        </div>
+        ${recent.length>0?`<span style="margin-left:auto;background:rgba(52,211,153,.1);color:var(--green);border:1px solid rgba(52,211,153,.2);border-radius:99px;font-size:10px;padding:2px 7px;font-family:var(--mono)">🆕 ${recent.length}篇近期</span>`:''}
+      </div>
+      <div class="fc-stats">
+        <div class="fc-stat"><div class="fc-stat-num" style="color:${f.color}">${arts.length}</div><div class="fc-stat-label">文献数</div></div>
+        <div class="fc-stat"><div class="fc-stat-num" style="color:var(--green)">${recent.length}</div><div class="fc-stat-label">近3月</div></div>
+        <div class="fc-stat"><div class="fc-stat-num" style="color:var(--amber)">${highif.length}</div><div class="fc-stat-label">高影响力</div></div>
+      </div>
+      <div class="fc-body">
+        ${trendItems.length ? `
+        <div class="fc-body-title">🔥 研究热点</div>
+        <div style="margin-bottom:10px">
+          ${trendItems.map(([w,n])=>`
+          <div class="trend-row">
+            <span class="trend-label" title="${w}">${w}</span>
+            <div class="trend-bar-bg"><div class="trend-bar-fill" style="width:${Math.round(n/maxKw*100)}%;background:${f.color}"></div></div>
+            <span class="trend-count">${n}</span>
+          </div>`).join('')}
+        </div>` : ''}
+        ${headlines.length ? `
+        <div class="fc-body-title">📌 最新动态</div>
+        <div class="headlines">
+          ${headlines.map(a=>`<div class="headline" onclick="event.stopPropagation();window.open('https://pubmed.ncbi.nlm.nih.gov/${a.pmid}/','_blank')">
+            ${a.title.length>70?a.title.slice(0,70)+'…':a.title}
+            <br><span class="journal-tag">${a.journal} · ${a.date}</span>
+          </div>`).join('')}
+        </div>` : '<div style="font-size:12px;color:var(--text3)">暂无数据</div>'}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function jumpToField(key){
+  document.querySelector('.nav-tab:nth-child(2)').click();
+  document.getElementById('art-field').value = key;
+  applyArtFilter();
+}
+
+// ── Article list ──
+function applyArtFilter(){
+  const q    = document.getElementById('art-search').value.toLowerCase();
+  const fld  = document.getElementById('art-field').value;
+  const sort = document.getElementById('art-sort').value;
+
+  let pool = [...allArticles];
+  if(fld)           pool = pool.filter(a => a.fieldKey===fld || a.badges.includes(fld));
+  if(sort==='new')  pool = pool.filter(a => a.recent);
+  if(sort==='highif') pool = pool.filter(a => a.highIF);
+  if(q) pool = pool.filter(a =>
+    a.title.toLowerCase().includes(q) ||
+    a.abstract.toLowerCase().includes(q) ||
+    a.authors.join(' ').toLowerCase().includes(q) ||
+    a.journal.toLowerCase().includes(q) ||
+    a.keywords.join(' ').toLowerCase().includes(q)
+  );
+  if(sort==='journal') pool.sort((a,b)=>a.journal.localeCompare(b.journal));
+  filteredArts = pool;
+  artPage = 1;
+  renderArtPage();
+}
+
+function renderArtPage(){
+  const start = (artPage-1)*PAGE;
+  const page  = filteredArts.slice(start, start+PAGE);
+  const total = filteredArts.length;
+  const pages = Math.ceil(total/PAGE);
+
+  if(!total){
+    document.getElementById('art-list').innerHTML = '<div class="empty">暂无匹配文献</div>';
+    document.getElementById('pager').style.display='none';
+    return;
+  }
+
+  document.getElementById('art-list').innerHTML = `<div class="articles">${page.map(renderArtCard).join('')}</div>`;
+
+  const pg = document.getElementById('pager');
+  pg.style.display = pages>1?'flex':'none';
+  document.getElementById('pager-info').textContent = `第${artPage}/${pages}页 · 共${total}篇`;
+  document.getElementById('prev-btn').disabled = artPage===1;
+  document.getElementById('next-btn').disabled = artPage===pages;
+}
+
+const BADGE_MAP = {
+  nano:'<span class="badge nano">纳米抗体</span>',
+  mono:'<span class="badge method">单克隆</span>',
+  adc:'<span class="badge adc">ADC</span>',
+  bisp:'<span class="badge bisp">双抗</span>',
+  immu:'<span class="badge immu">肿瘤免疫</span>',
+  protac:'<span class="badge protac">PROTAC</span>',
+  lytac:'<span class="badge lytac">LYTAC</span>',
+  abpr:'<span class="badge abpr">抗体-PROTAC</span>',
+  molglu:'<span class="badge molglu">Molecular Glue</span>',
+  aidd:'<span class="badge aidd">AIDD</span>',
+  method:'<span class="badge method">方法学</span>',
+};
+
+function renderArtCard(a){
+  const authorStr = a.authors.length>3 ? a.authors.slice(0,3).join(', ')+' 等' : a.authors.join(', ');
+  const absShort  = a.abstract.length>220 ? a.abstract.slice(0,220)+'…' : a.abstract;
+  const hasMore   = a.abstract.length>220;
+  const uniqueBadges = [...new Set(a.badges)].slice(0,4);
+
+  return `<div class="article-card">
+    <div class="ac-top">
+      <div class="ac-title"><a href="https://pubmed.ncbi.nlm.nih.gov/${a.pmid}/" target="_blank">${a.title}</a></div>
+      <div class="ac-badges">
+        ${a.recent?'<span class="badge new">🆕 近期</span>':''}
+        ${a.highIF?'<span class="badge hot">⭐ 顶刊</span>':''}
+        ${uniqueBadges.map(b=>BADGE_MAP[b]||'').join('')}
+      </div>
+    </div>
+    <div class="ac-meta">
+      <span class="${a.highIF?'j':''}">${a.journal}</span>
+      <span>${a.date}</span>
+      ${authorStr?`<span>${authorStr}</span>`:''}
+      <span style="font-family:var(--mono);font-size:10px;color:var(--text3)">PMID:${a.pmid}</span>
+    </div>
+    ${absShort?`<div class="ac-abstract" id="abs-s-${a.pmid}">${absShort}${hasMore?` <button class="toggle-abs" onclick="toggleAbs('${a.pmid}')">展开</button>`:''}</div>
+    ${hasMore?`<div class="ac-abstract" id="abs-f-${a.pmid}" style="display:none">${a.abstract} <button class="toggle-abs" onclick="toggleAbs('${a.pmid}')">收起</button></div>`:''}` : ''}
+    <div class="ac-footer">
+      <a class="link-btn pm" href="https://pubmed.ncbi.nlm.nih.gov/${a.pmid}/" target="_blank">🔗 PubMed</a>
+      ${a.doi?`<a class="link-btn" href="https://doi.org/${a.doi}" target="_blank">📄 全文</a>`:''}
+      ${a.keywords.length?a.keywords.slice(0,5).map(k=>`<span style="font-size:10px;color:var(--text3);background:var(--bg3);padding:2px 7px;border-radius:4px;">${k}</span>`).join(''):''}
+    </div>
+  </div>`;
+}
+
+function toggleAbs(pmid){
+  const s=document.getElementById('abs-s-'+pmid);
+  const f=document.getElementById('abs-f-'+pmid);
+  if(s&&f){const show=s.style.display!=='none';s.style.display=show?'none':'';f.style.display=show?'':'none';}
+}
+
+function changePage(dir){artPage+=dir;renderArtPage();window.scrollTo({top:0,behavior:'smooth'});}
+
+function switchPanel(id, el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  el.classList.add('active');
+}
+
+// 自动开始抓取
+startFetch();
+</script>
+</body>
+</html>
